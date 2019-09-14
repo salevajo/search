@@ -3,7 +3,7 @@ from time import time
 from django.shortcuts import render
 from django.http import HttpResponse, Http404, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.urls.exceptions import NoReverseMatch
 from django.conf import settings
 from ..contrib import installed
@@ -115,10 +115,16 @@ def doc(request, collection_name, id, suffix):
         })
 
 def whoami(request):
+    if settings.HOOVER_AUTHPROXY:
+        logout_url = '/__auth/logout'
+    else:
+        logout_url = reverse('logout') + '?next=/'
+
     urls = {
         'login': settings.LOGIN_URL,
         'admin': reverse('admin:index'),
-        'logout': reverse('logout') + '?next=/',
+        'logout': logout_url,
+        'hypothesis_embed': settings.HOOVER_HYPOTHESIS_EMBED,
     }
     try:
         password_change = reverse('password_change')
@@ -130,6 +136,7 @@ def whoami(request):
         'username': request.user.username,
         'admin': request.user.is_superuser,
         'urls': urls,
+        'title': settings.HOOVER_TITLE,
     })
 
 @csrf_exempt

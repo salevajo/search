@@ -2,7 +2,7 @@ from pathlib import Path
 
 base_dir = Path(__file__).absolute().parent.parent.parent.parent
 
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -10,20 +10,22 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'hoover.search',
-)
+    'hoover.contrib.ratelimit',
+]
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    'hoover.search.middleware.AuthproxyUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'hoover.search.middleware.NoReferral',
     'hoover.search.middleware.NoCache',
-)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+]
 
 ROOT_URLCONF = 'hoover.site.urls'
 
@@ -95,6 +97,9 @@ OTP_TOTP_SYNC = False
 
 HOOVER_ELASTICSEARCH_URL = 'http://localhost:9200'
 
+HOOVER_TITLE = 'Hoover'
+HOOVER_HYPOTHESIS_EMBED = None
+
 HOOVER_UPLOADS_URL = '/uploads/'
 
 STATIC_ROOT = str(base_dir / 'static')
@@ -102,7 +107,6 @@ HOOVER_UPLOADS_ROOT = str(base_dir / 'uploads')
 
 HOOVER_LOADERS = [
     'hoover.search.loaders.upload.Loader',
-    'hoover.search.loaders.webdav.Loader',
     'hoover.search.loaders.collectible.Loader',
     'hoover.search.loaders.external.Loader',
 ]
@@ -126,5 +130,7 @@ HOOVER_EVENTS_DIR = None
 HOOVER_OAUTH_LIQUID_URL = None
 HOOVER_OAUTH_LIQUID_CLIENT_ID = None
 HOOVER_OAUTH_LIQUID_CLIENT_SECRET = None
+
+HOOVER_AUTHPROXY = False
 
 HOOVER_HYPOTHESIS_EMBED_URL = None

@@ -4,33 +4,32 @@ from django.contrib.auth import login, logout
 from django.conf import settings
 import requests
 
-LIQUID_URL = settings.HOOVER_OAUTH_LIQUID_URL
-LIQUID_CLIENT_ID = settings.HOOVER_OAUTH_LIQUID_CLIENT_ID
-LIQUID_CLIENT_SECRET = settings.HOOVER_OAUTH_LIQUID_CLIENT_SECRET
+PUBLIC_URL = settings.LIQUID_AUTH_PUBLIC_URL
+INTERNAL_URL = settings.LIQUID_AUTH_INTERNAL_URL
+CLIENT_ID = settings.LIQUID_AUTH_CLIENT_ID
+CLIENT_SECRET = settings.LIQUID_AUTH_CLIENT_SECRET
 
 class ClientError(Exception):
     pass
 
 def oauth2_login(request):
-    authorize_url = LIQUID_URL + '/o/authorize/'
+    authorize_url = PUBLIC_URL + '/o/authorize/'
     return redirect(
         '{}?response_type=code&client_id={}'
-        .format(authorize_url, LIQUID_CLIENT_ID)
+        .format(authorize_url, CLIENT_ID)
     )
 
 def oauth2_exchange(request):
-    token_url = LIQUID_URL + '/o/token/'
+    token_url = INTERNAL_URL + '/o/token/'
     redirect_uri = request.build_absolute_uri('/accounts/oauth2-exchange/')
     code = request.GET.get('code')
-    token_resp = requests.post(
-        token_url,
-        data={
-            'redirect_uri': redirect_uri,
-            'grant_type': 'authorization_code',
-            'code': code,
-        },
-        auth=(LIQUID_CLIENT_ID, LIQUID_CLIENT_SECRET),
-    )
+    data = {
+        'redirect_uri': redirect_uri,
+        'grant_type': 'authorization_code',
+        'code': code,
+    }
+    auth = (CLIENT_ID, CLIENT_SECRET)
+    token_resp = requests.post(token_url, data=data, auth=auth)
     if token_resp.status_code != 200:
         raise ClientError(
             "Could not get token from {}: {!r}"
@@ -45,7 +44,7 @@ def oauth2_exchange(request):
             .format(token_type)
         )
     refresh_token = token_data['refresh_token']
-    profile_url = LIQUID_URL + '/accounts/profile'
+    profile_url = INTERNAL_URL + '/accounts/profile'
     profile_resp = requests.get(
         profile_url,
         headers={'Authorization': 'Bearer {}'.format(access_token)},
@@ -58,9 +57,14 @@ def oauth2_exchange(request):
     profile = profile_resp.json()
     user, created = User.objects.get_or_create(username=profile['login'])
     if created:
-        user.is_superuser = True
-        user.is_staff = True
         user.save()
+
+    is_admin = profile['is_admin']
+    if is_admin != user.is_superuser or is_admin != user.is_staff:
+        user.is_superuser = is_admin
+        user.is_staff = is_admin
+        user.save()
+
     login(request, user)
 
     return redirect(settings.LOGIN_REDIRECT_URL)
